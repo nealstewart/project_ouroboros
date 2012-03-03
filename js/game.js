@@ -147,7 +147,7 @@ $(document).ready(function() {
 
     //start the main scene when loaded
 
-    socket = io.connect('http://localhost/', {});
+    socket = io.connect(document.location.href, {});
       socket.on('id', function(idToSet) {
       myId = idToSet;
       Crafty.scene("main");
