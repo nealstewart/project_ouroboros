@@ -92,6 +92,13 @@ function createPlayer(id, location) {
       opponent.score += 1;
       var newScore = '';
       for (var p in players) {
+        if (players[p].score >= 10) {
+          score.text('player ' + players[p].id + ' wins with ' + players[p].score + ' points!');
+          for (var i in players) {
+            players[i].destroy();
+          }
+          return;
+        }
         newScore += ' player ' + players[p].id + ': ' + players[p].score;
       }
       score.text(newScore);
@@ -227,12 +234,12 @@ $(document).ready(function() {
     firebullet = function(player) {
       var bullet = Crafty.e("2D, Canvas, Color, bullet")
       .attr({
-        x: player._x - 4,
-        y: player._y - 7,
-        w: 2, 
-        h: 5, 
-        rotation: player._rotation, 
-        xspeed: 20 * Math.sin(player._rotation / 57.3), 
+        x: player._x + 9,
+        y: player._y + 47,
+        w: 2,
+        h: 5,
+        rotation: player._rotation,
+        xspeed: 20 * Math.sin(player._rotation / 57.3),
         yspeed: 20 * Math.cos(player._rotation / 57.3)
       })
       .color("rgb(255, 0, 0)")
