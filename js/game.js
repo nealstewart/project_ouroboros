@@ -1,4 +1,7 @@
 $(document).ready(function() {
+  var socket;
+  var player;
+
 	//init Crafty with FPS of 50 and create the canvas element
 	Crafty.init();
 	Crafty.canvas.init();
@@ -15,8 +18,52 @@ $(document).ready(function() {
 		
 		//start the main scene when loaded
 
-
-		Crafty.scene("main");
+    socket = io.connect('http://localhost/', {});
+    socket.on('connect', function() {
+		  Crafty.scene("main");
+    });
+    socket.on('KeyDown', function(data) {
+      //on keydown, set the move booleans
+      if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
+        player.move.right = true;
+      } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
+        player.move.left = true;
+      } else if(data.keyCode === Crafty.keys.UP_ARROW) {
+        player.move.up = true;
+      } else if(data.keyCode === Crafty.keys.SPACE) {
+        //create a bullet entity
+        Crafty.e("2D, Canvas, Color, bullet")
+          .attr({
+            x: player._x, 
+            y: player._y, 
+            w: 2, 
+            h: 5, 
+            rotation: player._rotation, 
+            xspeed: 20 * Math.sin(player._rotation / 57.3), 
+            yspeed: 20 * Math.cos(player._rotation / 57.3)
+          })
+          .color("rgb(255, 0, 0)")
+          .bind("EnterFrame", function() {	
+            player.x += player.xspeed;
+            player.y -= player.yspeed;
+            
+            //destroy if it goes out of bounds
+            if(player._x > Crafty.viewport.width || player._x < 0 || player._y > Crafty.viewport.height || player._y < 0) {
+              player.destroy();
+            }
+          });
+      }
+    });
+    socket.on('KeyUp', function(data) {
+      //on key up, set the move booleans to false
+      if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
+        player.move.right = false;
+      } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
+        player.move.left = false;
+      } else if(data.keyCode === Crafty.keys.UP_ARROW) {
+        player.move.up = false;
+      }
+    });
 	});
 	
 	Crafty.scene("main", function() {
@@ -29,7 +76,7 @@ $(document).ready(function() {
 			.css({color: "#fff"});
 			
 		//player entity
-		var player = Crafty.e("2D, Canvas, ship, Controls, Collision")
+		player = Crafty.e("2D, Canvas, ship, Controls, Collision")
 			.attr({
         move: {
           left: false, right: false,
@@ -44,45 +91,13 @@ $(document).ready(function() {
       })
 			.origin("center")
 			.bind("KeyDown", function(e) {
-				//on keydown, set the move booleans
-				if(e.keyCode === Crafty.keys.RIGHT_ARROW) {
-					this.move.right = true;
-				} else if(e.keyCode === Crafty.keys.LEFT_ARROW) {
-					this.move.left = true;
-				} else if(e.keyCode === Crafty.keys.UP_ARROW) {
-					this.move.up = true;
-				} else if(e.keyCode === Crafty.keys.SPACE) {
-					//create a bullet entity
-					Crafty.e("2D, Canvas, Color, bullet")
-						.attr({
-							x: this._x, 
-							y: this._y, 
-							w: 2, 
-							h: 5, 
-							rotation: this._rotation, 
-							xspeed: 20 * Math.sin(this._rotation / 57.3), 
-							yspeed: 20 * Math.cos(this._rotation / 57.3)
-						})
-						.color("rgb(255, 0, 0)")
-						.bind("EnterFrame", function() {	
-							this.x += this.xspeed;
-							this.y -= this.yspeed;
-							
-							//destroy if it goes out of bounds
-							if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
-								this.destroy();
-							}
-						});
-				}
-			}).bind("KeyUp", function(e) {
-				//on key up, set the move booleans to false
-				if(e.keyCode === Crafty.keys.RIGHT_ARROW) {
-					this.move.right = false;
-				} else if(e.keyCode === Crafty.keys.LEFT_ARROW) {
-					this.move.left = false;
-				} else if(e.keyCode === Crafty.keys.UP_ARROW) {
-					this.move.up = false;
-				}
+        var data = {};
+        data.keyCode = e.keyCode;
+        socket.emit('KeyDown', data);
+      }).bind("KeyUp", function(e) {
+        var data = {};
+        data.keyCode = e.keyCode;
+        socket.emit('KeyUp', data);
 			}).bind("EnterFrame", function() {
 				if(this.move.right) this.rotation += 5;
 				if(this.move.left) this.rotation -= 5;
