@@ -1,6 +1,7 @@
 $(document).ready(function() {
   var socket;
   var player;
+  var firebullet;
 
 	//init Crafty with FPS of 50 and create the canvas element
 	Crafty.init();
@@ -32,26 +33,7 @@ $(document).ready(function() {
         player.move.up = true;
       } else if(data.keyCode === Crafty.keys.SPACE) {
         //create a bullet entity
-        Crafty.e("2D, Canvas, Color, bullet")
-          .attr({
-            x: player._x, 
-            y: player._y, 
-            w: 2, 
-            h: 5, 
-            rotation: player._rotation, 
-            xspeed: 20 * Math.sin(player._rotation / 57.3), 
-            yspeed: 20 * Math.cos(player._rotation / 57.3)
-          })
-          .color("rgb(255, 0, 0)")
-          .bind("EnterFrame", function() {	
-            player.x += player.xspeed;
-            player.y -= player.yspeed;
-            
-            //destroy if it goes out of bounds
-            if(player._x > Crafty.viewport.width || player._x < 0 || player._y > Crafty.viewport.height || player._y < 0) {
-              player.destroy();
-            }
-          });
+        firebullet();
       }
     });
     socket.on('KeyUp', function(data) {
@@ -75,7 +57,7 @@ $(document).ready(function() {
 			.attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
 			.css({color: "#fff"});
 			
-		//player entity
+    //player entity
 		player = Crafty.e("2D, Canvas, ship, Controls, Collision")
 			.attr({
         move: {
@@ -135,16 +117,39 @@ $(document).ready(function() {
 				}
 				
 				//if all asteroids are gone, start again with more
-				if(asteroidCount <= 0) {
+				/*if(asteroidCount <= 0) {
 					initRocks(lastCount, lastCount * 2);
-				}
+				}*/
 			}).collision()
 			.onHit("asteroid", function() {
 				//if player gets hit, restart the game
 				Crafty.scene("main");
 			});
-		
-		//keep a count of asteroids
+
+    firebullet = function() {
+    var bullet = Crafty.e("2D, Canvas, Color, bullet")
+      .attr({
+        x: player._x, 
+        y: player._y, 
+        w: 2, 
+        h: 5, 
+        rotation: player._rotation, 
+        xspeed: 20 * Math.sin(player._rotation / 57.3), 
+        yspeed: 20 * Math.cos(player._rotation / 57.3)
+      })
+      .color("rgb(255, 0, 0)")
+      .bind("EnterFrame", function() {	
+        bullet.x += bullet.xspeed;
+        bullet.y -= bullet.yspeed;
+        
+        //destroy if it goes out of bounds
+        if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
+          bullet.destroy();
+        }
+      });
+    };
+
+		/*//keep a count of asteroids
 		var asteroidCount,
 			lastCount;
 		
@@ -220,6 +225,7 @@ $(document).ready(function() {
 		}
 		//first level has between 1 and 10 asteroids
 		initRocks(1, 10);
+    */
 	});
 	
 });
