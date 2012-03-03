@@ -1,3 +1,5 @@
+window.ouro = window.ouro || {};
+
 var players = [];
 var socket;
 var player;
@@ -98,10 +100,7 @@ function createPlayer(id, location) {
     }
   });
 
-  console.log('your player?', id, myId);
-
   if (id == myId) {
-    console.log('registering your player', myId);
     player.bind("KeyDown", function(e) {
       var data = {};
       data.keyCode = e.keyCode;
@@ -124,19 +123,19 @@ function createPlayer(id, location) {
     });
   }
 
-  //player.collision();
+  player.collision();
 
   players.push(player);
 }
 
 $(document).ready(function() {
-
-  //init Crafty with FPS of 50 and create the canvas element
-  Crafty.init();
   Crafty.canvas.init();
+  //init Crafty with FPS of 50 and create the canvas element
 
   //preload the needed assets
   Crafty.load(["images/sprite.png", "images/bg.png"], function() {
+    Crafty.scene('start_menu');
+    return;
     //splice the spritemap
     Crafty.sprite(64, "images/sprite.png", {
       ship: [0,0],
@@ -147,11 +146,8 @@ $(document).ready(function() {
 
     //start the main scene when loaded
 
-    socket = io.connect(document.location.href, {});
-      socket.on('id', function(idToSet) {
-      myId = idToSet;
-      Crafty.scene("main");
-    });
+
+    var socket = window.ouro.socket;
 
     socket.on('newPlayer', createPlayer);
 
