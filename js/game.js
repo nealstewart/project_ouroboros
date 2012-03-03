@@ -128,199 +128,186 @@ function createPlayer(id, location) {
   players.push(player);
 }
 
-$(document).ready(function() {
-  Crafty.canvas.init();
-  //init Crafty with FPS of 50 and create the canvas element
+Crafty.scene("main", function() {
+  Crafty.background("url('images/bg.png')");
 
-  //preload the needed assets
-  Crafty.load(["images/sprite.png", "images/bg.png"], function() {
-    Crafty.scene('start_menu');
-    return;
-    //splice the spritemap
-    Crafty.sprite(64, "images/sprite.png", {
-      ship: [0,0],
-      big: [1,0],
-      medium: [2,0],
-      small: [3,0]
-    });
+  //score display
+  score = Crafty.e("2D, DOM, Text")
+  .text("Score: 0")
+  .attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
+  .css({color: "#fff"});
 
-    //start the main scene when loaded
+  //player entity
 
+  firebullet = function(player) {
+    var bullet = Crafty.e("2D, Canvas, Color, bullet")
+    .attr({
+      x: player._x - 4,
+      y: player._y - 7,
+      w: 2, 
+      h: 5, 
+      rotation: player._rotation, 
+      xspeed: 20 * Math.sin(player._rotation / 57.3), 
+      yspeed: 20 * Math.cos(player._rotation / 57.3)
+    })
+    .color("rgb(255, 0, 0)")
+    .bind("EnterFrame", function() { 
+      bullet.x += bullet.xspeed;
+      bullet.y -= bullet.yspeed;
 
-    var socket = window.ouro.socket;
-
-    socket.on('newPlayer', createPlayer);
-
-    socket.on('KeyDown', function(id, data) {
-      var player = _.find(players, function(plr) {
-        return plr.id == id;
-      });
-
-      // TODO: remove this later
-      if (!player) {
-        createPlayer(id);
-        player = _.find(players, function(plr) {
-          return plr.id == id;
-        });
-      }
-
-      player._x = data.x;
-      player._y = data.y;
-      player._rotation = data.rotation;
-
-      //on keydown, set the move booleans
-      if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
-        player.move.right = true;
-      } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
-        player.move.left = true;
-      } else if(data.keyCode === Crafty.keys.UP_ARROW) {
-        player.move.up = true;
-      } else if(data.keyCode === Crafty.keys.SPACE) {
-        //create a bullet entity
-        firebullet(player);
+      //destroy if it goes out of bounds
+      if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
+        bullet.destroy();
       }
     });
+    bullet.player_id = player.id;
+  };
 
-    socket.on('KeyUp', function(id, data) {
-      var player = _.find(players, function(plr) {
-        return plr.id == id;
-      });
-      
-      // TODO: remove this later
-      if (!player) {
-        createPlayer(id);
-        player = _.find(players, function(plr) {
-          return plr.id == id;
-        });
-      }
+  /*//keep a count of asteroids
+  var asteroidCount,
+  lastCount;
 
-      player._x = data.x;
-      player._y = data.y;
-      player._rotation = data.rotation;
+  //Asteroid component
+  Crafty.c("asteroid", {
+  init: function() {
+  this.origin("center");
+  this.attr({
+  x: Crafty.math.randomInt(0, Crafty.viewport.width), //give it random positions, rotation and speed
+  y: Crafty.math.randomInt(0, Crafty.viewport.height),
+  xspeed: Crafty.math.randomInt(1, 5), 
+  yspeed: Crafty.math.randomInt(1, 5), 
+  rspeed: Crafty.math.randomInt(-5, 5)
+  }).bind("EnterFrame", function() {
+  this.x += this.xspeed;
+  this.y += this.yspeed;
+  this.rotation += this.rspeed;
 
-      //on key up, set the move booleans to false
-      if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
-        player.move.right = false;
-      } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
-        player.move.left = false;
-      } else if(data.keyCode === Crafty.keys.UP_ARROW) {
-        player.move.up = false;
-      }
-    });
+  if(this._x > Crafty.viewport.width) {
+  this.x = -64;
+  }
+  if(this._x < -64) {
+  this.x =  Crafty.viewport.width;
+  }
+  if(this._y > Crafty.viewport.height) {
+  this.y = -64;
+  }
+  if(this._y < -64) {
+  this.y = Crafty.viewport.height;
+  }
+  }).collision()
+  .onHit("bullet", function(e) {
+  //if hit by a bullet increment the score
+  player.score += 5;
+  score.text("Score: "+player.score);
+  e[0].obj.destroy(); //destroy the bullet
+
+  var size;
+  //decide what size to make the asteroid
+  if(this.has("big")) {
+  this.removeComponent("big").addComponent("medium");
+  size = "medium";
+  } else if(this.has("medium")) {
+  this.removeComponent("medium").addComponent("small");
+  size = "small";
+  } else if(this.has("small")) { //if the lowest size, delete self
+  asteroidCount--;
+  this.destroy();
+  return;
+  }
+
+  var oldxspeed = this.xspeed;
+  this.xspeed = -this.yspeed;
+  this.yspeed = oldxspeed;
+
+  asteroidCount++;
+  //split into two asteroids by creating another asteroid
+  Crafty.e("2D, Canvas, "+size+", Collision, asteroid").attr({x: this._x, y: this._y});
   });
 
-  Crafty.scene("main", function() {
-    Crafty.background("url('images/bg.png')");
+  }
+  });
 
-    //score display
-    score = Crafty.e("2D, DOM, Text")
-    .text("Score: 0")
-    .attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
-    .css({color: "#fff"});
+  //function to fill the screen with asteroids by a random amount
+  function initRocks(lower, upper) {
+  var rocks = Crafty.math.randomInt(lower, upper);
+  asteroidCount = rocks;
+  lastCount = rocks;
 
-    //player entity
-
-    firebullet = function(player) {
-      var bullet = Crafty.e("2D, Canvas, Color, bullet")
-      .attr({
-        x: player._x - 4,
-        y: player._y - 7,
-        w: 2, 
-        h: 5, 
-        rotation: player._rotation, 
-        xspeed: 20 * Math.sin(player._rotation / 57.3), 
-        yspeed: 20 * Math.cos(player._rotation / 57.3)
-      })
-      .color("rgb(255, 0, 0)")
-      .bind("EnterFrame", function() { 
-        bullet.x += bullet.xspeed;
-        bullet.y -= bullet.yspeed;
-
-        //destroy if it goes out of bounds
-        if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
-          bullet.destroy();
-        }
-      });
-      bullet.player_id = player.id;
-    };
-
-    /*//keep a count of asteroids
-    var asteroidCount,
-    lastCount;
-
-    //Asteroid component
-    Crafty.c("asteroid", {
-    init: function() {
-    this.origin("center");
-    this.attr({
-    x: Crafty.math.randomInt(0, Crafty.viewport.width), //give it random positions, rotation and speed
-    y: Crafty.math.randomInt(0, Crafty.viewport.height),
-    xspeed: Crafty.math.randomInt(1, 5), 
-    yspeed: Crafty.math.randomInt(1, 5), 
-    rspeed: Crafty.math.randomInt(-5, 5)
-    }).bind("EnterFrame", function() {
-    this.x += this.xspeed;
-    this.y += this.yspeed;
-    this.rotation += this.rspeed;
-
-    if(this._x > Crafty.viewport.width) {
-    this.x = -64;
-    }
-    if(this._x < -64) {
-    this.x =  Crafty.viewport.width;
-    }
-    if(this._y > Crafty.viewport.height) {
-    this.y = -64;
-    }
-    if(this._y < -64) {
-    this.y = Crafty.viewport.height;
-    }
-    }).collision()
-    .onHit("bullet", function(e) {
-    //if hit by a bullet increment the score
-    player.score += 5;
-    score.text("Score: "+player.score);
-    e[0].obj.destroy(); //destroy the bullet
-
-    var size;
-    //decide what size to make the asteroid
-    if(this.has("big")) {
-    this.removeComponent("big").addComponent("medium");
-    size = "medium";
-    } else if(this.has("medium")) {
-    this.removeComponent("medium").addComponent("small");
-    size = "small";
-    } else if(this.has("small")) { //if the lowest size, delete self
-    asteroidCount--;
-    this.destroy();
-    return;
-    }
-
-    var oldxspeed = this.xspeed;
-    this.xspeed = -this.yspeed;
-    this.yspeed = oldxspeed;
-
-    asteroidCount++;
-    //split into two asteroids by creating another asteroid
-    Crafty.e("2D, Canvas, "+size+", Collision, asteroid").attr({x: this._x, y: this._y});
-    });
-
-    }
-    });
-
-    //function to fill the screen with asteroids by a random amount
-    function initRocks(lower, upper) {
-    var rocks = Crafty.math.randomInt(lower, upper);
-    asteroidCount = rocks;
-    lastCount = rocks;
-
-    for(var i = 0; i < rocks; i++) {
-    Crafty.e("2D, Canvas, big, Collision, asteroid");
-    }
-    }
-    //first level has between 1 and 10 asteroids
-    initRocks(1, 10);
+  for(var i = 0; i < rocks; i++) {
+  Crafty.e("2D, Canvas, big, Collision, asteroid");
+  }
+  }
+  //first level has between 1 and 10 asteroids
+  initRocks(1, 10);
 */
+});
+
+$(document).ready(function() {
+  Crafty.scene('start_menu');
+  return;
+  Crafty.canvas.init();
+
+  Crafty.scene('main');
+
+  var socket = window.ouro.socket;
+
+  socket.on('newPlayer', createPlayer);
+
+  socket.on('KeyDown', function(id, data) {
+    var player = _.find(players, function(plr) {
+      return plr.id == id;
+    });
+
+    // TODO: remove this later
+    if (!player) {
+      createPlayer(id);
+      player = _.find(players, function(plr) {
+        return plr.id == id;
+      });
+    }
+
+    player._x = data.x;
+    player._y = data.y;
+    player._rotation = data.rotation;
+
+    //on keydown, set the move booleans
+    if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
+      player.move.right = true;
+    } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
+      player.move.left = true;
+    } else if(data.keyCode === Crafty.keys.UP_ARROW) {
+      player.move.up = true;
+    } else if(data.keyCode === Crafty.keys.SPACE) {
+      //create a bullet entity
+      firebullet(player);
+    }
   });
 
+  socket.on('KeyUp', function(id, data) {
+    var player = _.find(players, function(plr) {
+      return plr.id == id;
+    });
+    
+    // TODO: remove this later
+    if (!player) {
+      createPlayer(id);
+      player = _.find(players, function(plr) {
+        return plr.id == id;
+      });
+    }
+
+    player._x = data.x;
+    player._y = data.y;
+    player._rotation = data.rotation;
+
+    //on key up, set the move booleans to false
+    if(data.keyCode === Crafty.keys.RIGHT_ARROW) {
+      player.move.right = false;
+    } else if(data.keyCode === Crafty.keys.LEFT_ARROW) {
+      player.move.left = false;
+    } else if(data.keyCode === Crafty.keys.UP_ARROW) {
+      player.move.up = false;
+    }
+  });
 });
+
