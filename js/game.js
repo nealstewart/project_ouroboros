@@ -1,7 +1,7 @@
 $(document).ready(function() {
 	//init Crafty with FPS of 50 and create the canvas element
 	Crafty.init();
-	Crafty.canvas();
+	Crafty.canvas.init();
 	
 	//preload the needed assets
 	Crafty.load(["images/sprite.png", "images/bg.png"], function() {
@@ -14,6 +14,8 @@ $(document).ready(function() {
 		});
 		
 		//start the main scene when loaded
+
+
 		Crafty.scene("main");
 	});
 	
@@ -28,10 +30,20 @@ $(document).ready(function() {
 			
 		//player entity
 		var player = Crafty.e("2D, Canvas, ship, Controls, Collision")
-			.attr({move: {left: false, right: false, up: false, down: false}, xspeed: 0, yspeed: 0, decay: 0.9, 
-				x: Crafty.viewport.width / 2, y: Crafty.viewport.height / 2, score: 0})
+			.attr({
+        move: {
+          left: false, right: false,
+          up: false, down: false
+        }, 
+        xspeed: 0,
+        yspeed: 0,
+        decay: 0.9,
+				x: Crafty.viewport.width / 2,
+        y: Crafty.viewport.height / 2,
+        score: 0
+      })
 			.origin("center")
-			.bind("keydown", function(e) {
+			.bind("KeyDown", function(e) {
 				//on keydown, set the move booleans
 				if(e.keyCode === Crafty.keys.RIGHT_ARROW) {
 					this.move.right = true;
@@ -41,7 +53,7 @@ $(document).ready(function() {
 					this.move.up = true;
 				} else if(e.keyCode === Crafty.keys.SPACE) {
 					//create a bullet entity
-					Crafty.e("2D, DOM, Color, bullet")
+					Crafty.e("2D, Canvas, Color, bullet")
 						.attr({
 							x: this._x, 
 							y: this._y, 
@@ -52,7 +64,7 @@ $(document).ready(function() {
 							yspeed: 20 * Math.cos(this._rotation / 57.3)
 						})
 						.color("rgb(255, 0, 0)")
-						.bind("enterframe", function() {	
+						.bind("EnterFrame", function() {	
 							this.x += this.xspeed;
 							this.y -= this.yspeed;
 							
@@ -62,7 +74,7 @@ $(document).ready(function() {
 							}
 						});
 				}
-			}).bind("keyup", function(e) {
+			}).bind("KeyUp", function(e) {
 				//on key up, set the move booleans to false
 				if(e.keyCode === Crafty.keys.RIGHT_ARROW) {
 					this.move.right = false;
@@ -71,7 +83,7 @@ $(document).ready(function() {
 				} else if(e.keyCode === Crafty.keys.UP_ARROW) {
 					this.move.up = false;
 				}
-			}).bind("enterframe", function() {
+			}).bind("EnterFrame", function() {
 				if(this.move.right) this.rotation += 5;
 				if(this.move.left) this.rotation -= 5;
 				
@@ -126,12 +138,12 @@ $(document).ready(function() {
 			init: function() {
 				this.origin("center");
 				this.attr({
-					x: Crafty.randRange(0, Crafty.viewport.width), //give it random positions, rotation and speed
-					x: Crafty.randRange(0, Crafty.viewport.height),
-					xspeed: Crafty.randRange(1, 5), 
-					yspeed: Crafty.randRange(1, 5), 
-					rspeed: Crafty.randRange(-5, 5)
-				}).bind("enterframe", function() {
+					x: Crafty.math.randomInt(0, Crafty.viewport.width), //give it random positions, rotation and speed
+					y: Crafty.math.randomInt(0, Crafty.viewport.height),
+					xspeed: Crafty.math.randomInt(1, 5), 
+					yspeed: Crafty.math.randomInt(1, 5), 
+					rspeed: Crafty.math.randomInt(-5, 5)
+				}).bind("EnterFrame", function() {
 					this.x += this.xspeed;
 					this.y += this.yspeed;
 					this.rotation += this.rspeed;
@@ -175,7 +187,7 @@ $(document).ready(function() {
 					
 					asteroidCount++;
 					//split into two asteroids by creating another asteroid
-					Crafty.e("2D, DOM, "+size+", Collision, asteroid").attr({x: this._x, y: this._y});
+					Crafty.e("2D, Canvas, "+size+", Collision, asteroid").attr({x: this._x, y: this._y});
 				});
 				
 			}
@@ -183,12 +195,12 @@ $(document).ready(function() {
 		
 		//function to fill the screen with asteroids by a random amount
 		function initRocks(lower, upper) {
-			var rocks = Crafty.randRange(lower, upper);
+			var rocks = Crafty.math.randomInt(lower, upper);
 			asteroidCount = rocks;
 			lastCount = rocks;
 			
 			for(var i = 0; i < rocks; i++) {
-				Crafty.e("2D, DOM, big, Collision, asteroid");
+				Crafty.e("2D, Canvas, big, Collision, asteroid");
 			}
 		}
 		//first level has between 1 and 10 asteroids
