@@ -3,6 +3,7 @@ var socket;
 var player;
 var firebullet;
 var myId;
+var score;
 
 var Crafty = Crafty;
 var _ = _;
@@ -64,9 +65,43 @@ function createPlayer(id, location) {
     /*if(asteroidCount <= 0) {
     initRocks(lastCount, lastCount * 2);
       }*/
+  }).collision()
+    .onHit("bullet", function(e) {
+    //if hit by a bullet increment the score
+    //player.score += 5;
+    //score.text("Score: "+player.score);
+    var bullet = e[0].obj;
+    console.log('bullet', bullet);
+    if (this.id != bullet.player_id) {
+      bullet.destroy(); //destroy the bullet
+      this.attr({
+        move: {
+          left: false, right: false,
+          up: false, down: false
+        }, 
+        xspeed: 0,
+        yspeed: 0,
+        decay: 0.9,
+        x: Crafty.viewport.width / 2,
+        y: Crafty.viewport.height / 2
+      });
+      //createPlayer(player.id);
+      var opponent = _.find(players, function(plr) {
+        return plr.id == bullet.player_id;
+      });
+      opponent.score += 1;
+      var newScore = '';
+      for (var p in players) {
+        newScore += ' player ' + players[p].id + ': ' + players[p].score;
+      }
+      score.text(newScore);
+    }
   });
 
+  console.log('your player?', id, myId);
+
   if (id == myId) {
+    console.log('registering your player', myId);
     player.bind("KeyDown", function(e) {
       var data = {};
       data.keyCode = e.keyCode;
@@ -89,7 +124,7 @@ function createPlayer(id, location) {
     });
   }
 
-  player.collision();
+  //player.collision();
 
   players.push(player);
 }
@@ -125,6 +160,14 @@ $(document).ready(function() {
         return plr.id == id;
       });
 
+      // TODO: remove this later
+      if (!player) {
+        createPlayer(id);
+        player = _.find(players, function(plr) {
+          return plr.id == id;
+        });
+      }
+
       player._x = data.x;
       player._y = data.y;
       player._rotation = data.rotation;
@@ -138,7 +181,7 @@ $(document).ready(function() {
         player.move.up = true;
       } else if(data.keyCode === Crafty.keys.SPACE) {
         //create a bullet entity
-        firebullet();
+        firebullet(player);
       }
     });
 
@@ -146,6 +189,14 @@ $(document).ready(function() {
       var player = _.find(players, function(plr) {
         return plr.id == id;
       });
+      
+      // TODO: remove this later
+      if (!player) {
+        createPlayer(id);
+        player = _.find(players, function(plr) {
+          return plr.id == id;
+        });
+      }
 
       player._x = data.x;
       player._y = data.y;
@@ -166,18 +217,18 @@ $(document).ready(function() {
     Crafty.background("url('images/bg.png')");
 
     //score display
-    var score = Crafty.e("2D, DOM, Text")
+    score = Crafty.e("2D, DOM, Text")
     .text("Score: 0")
     .attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
     .css({color: "#fff"});
 
     //player entity
 
-    firebullet = function() {
+    firebullet = function(player) {
       var bullet = Crafty.e("2D, Canvas, Color, bullet")
       .attr({
-        x: player._x, 
-        y: player._y, 
+        x: player._x - 4,
+        y: player._y - 7,
         w: 2, 
         h: 5, 
         rotation: player._rotation, 
@@ -194,6 +245,7 @@ $(document).ready(function() {
           bullet.destroy();
         }
       });
+      bullet.player_id = player.id;
     };
 
     /*//keep a count of asteroids
