@@ -71,7 +71,6 @@ function createPlayer(id, location) {
     //player.score += 5;
     //score.text("Score: "+player.score);
     var bullet = e[0].obj;
-    console.log('bullet', bullet);
     if (this.id != bullet.player_id) {
       bullet.destroy(); //destroy the bullet
       this.attr({
@@ -99,16 +98,13 @@ function createPlayer(id, location) {
           }
           return;
         }
-        newScore += ' player ' + players[p].id + ': ' + players[p].score;
+        newScore += 'player ' + players[p].id + ': ' + players[p].score + '<br/>';
       }
       score.text(newScore);
     }
   });
 
-  console.log('your player?', id, myId);
-
   if (id == myId) {
-    console.log('registering your player', myId);
     player.bind("KeyDown", function(e) {
       var data = {};
       data.keyCode = e.keyCode;
