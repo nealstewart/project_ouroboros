@@ -232,9 +232,3 @@ Crafty.scene("main", function() {
 
 
 
-$(document).ready(function() {
-  Crafty.canvas.init();
-
-  Crafty.scene('start_menu');
-});
-

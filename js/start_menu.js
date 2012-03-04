@@ -1,6 +1,9 @@
 window.ouro = window.ouro || {};
 window.ouro.myId = null;
 
+
+
+
 var Crafty = Crafty;
 var io = io;
 
@@ -69,6 +72,10 @@ Crafty.scene("start_menu", function () {
       });
     }
   });
+});
 
 
+$(document).ready(function() {
+  Crafty.canvas.init();
+  Crafty.scene('start_menu');
 });
