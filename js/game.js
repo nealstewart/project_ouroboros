@@ -16,16 +16,89 @@ var typeSprites = {
   eye: "EyeSprite"
 };
 
+var typeBulletSprites = {
+  boob: "BoobGunSpitSprite",
+  eye: "EyeLaserSprite"
+};
+
+var typeOrigin = {
+  eye: "center",
+  boob: "center",
+  teeth: "top"
+};
+
+function degToRad(deg) {
+  return deg / 180 * Math.PI;
+}
+
+var typeBulletRadAdjustments = {
+  boob: 0.08,
+  eye: 0.15
+};
+
+var typeBulletHeightAdjustment = {
+  boob: 70,
+  eye: -30
+};
+
+function fireBullet(player) {
+  var bulletType = typeBulletSprites[player.type];
+
+  var rec = player.mbr();
+
+  var centerX = rec._w / 2 + rec._x;
+  var centerY = rec._h / 2 + rec._y;
+
+  var playerRotationRads = degToRad(player._rotation);
+
+  var typeHeightAdjustment = typeBulletHeightAdjustment[player.type];
+
+  var heightAdjustment = player._h / 2 + typeHeightAdjustment;
+
+  var typeRadAdjustment = typeBulletRadAdjustments[player.type];
+
+  var xAdjustment = Math.sin(playerRotationRads - typeRadAdjustment) * heightAdjustment;
+  var yAdjustment = -Math.cos(playerRotationRads - typeRadAdjustment) * heightAdjustment;
+
+  var playerRotation = player._rotation;
+
+  var bullet = Crafty.e("2D, Canvas, Sprite, " + bulletType)
+  .attr({
+    x: centerX + xAdjustment,
+    y: centerY + yAdjustment,
+    z: player._z + 1,
+    rotation: playerRotation,
+    xspeed: 20 * Math.sin(player._rotation / 57.3), 
+    yspeed: 20 * Math.cos(player._rotation / 57.3)
+  })
+  .bind("EnterFrame", function() { 
+    bullet.x += bullet.xspeed;
+    bullet.y -= bullet.yspeed;
+
+    //destroy if it goes out of bounds
+    if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
+      bullet.destroy();
+    }
+  });
+
+
+
+  bullet.player_id = player.id;
+}
+
 function createPlayer(playerInfo) {
   var socket = window.ouro.socket;
-  playerInfo.type = "eye";
+  playerInfo.type = "boob";
 
   var sprite = typeSprites[playerInfo.type];
+
+  var origin = typeOrigin[playerInfo.type];
 
   var player = Crafty.e("2D, Canvas, Controls, Collision, SpriteAnimation, " + sprite)
   .attr({
     id: playerInfo.id,
     name: playerInfo.name,
+    type: playerInfo.type,
     move: {
       left: false, right: false,
       up: false, down: false
@@ -37,7 +110,7 @@ function createPlayer(playerInfo) {
     y: Crafty.viewport.height / 2,
     score: 0
   })
-  .origin("center")
+  .origin(origin)
   .bind("EnterFrame", function() {
     if(this.move.right) this.rotation += 5;
     if(this.move.left) this.rotation -= 5;
@@ -119,6 +192,9 @@ function createPlayer(playerInfo) {
     }
   });
 
+  console.log(player._w);
+  console.log(player._h);
+
   switch(playerInfo.type) {
     case "teeth":
       player.animate('active', 0, 0, 1)
@@ -178,14 +254,6 @@ Crafty.scene("main", function() {
       return plr.id == id;
     });
 
-    // TODO: remove this later
-    if (!player) {
-      createPlayer(id);
-      player = _.find(players, function(plr) {
-        return plr.id == id;
-      });
-    }
-
     player._x = data.x;
     player._y = data.y;
     player._rotation = data.rotation;
@@ -199,7 +267,7 @@ Crafty.scene("main", function() {
       player.move.up = true;
     } else if(data.keyCode === Crafty.keys.SPACE) {
       //create a bullet entity
-      firebullet(player);
+      fireBullet(player);
     }
   });
 
@@ -240,29 +308,6 @@ Crafty.scene("main", function() {
 
   //player entity
 
-  firebullet = function(player) {
-    var bullet = Crafty.e("2D, Canvas, Color, bullet")
-    .attr({
-      x: player._x + 9,
-      y: player._y + 47,
-      w: 2, 
-      h: 5, 
-      rotation: player._rotation, 
-      xspeed: 20 * Math.sin(player._rotation / 57.3), 
-      yspeed: 20 * Math.cos(player._rotation / 57.3)
-    })
-    .color("rgb(255, 0, 0)")
-    .bind("EnterFrame", function() { 
-      bullet.x += bullet.xspeed;
-      bullet.y -= bullet.yspeed;
-
-      //destroy if it goes out of bounds
-      if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
-        bullet.destroy();
-      }
-    });
-    bullet.player_id = player.id;
-  };
 });
 
 
