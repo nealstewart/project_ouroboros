@@ -8,10 +8,21 @@ var Crafty = Crafty;
 var _ = _;
 var io = io;
 
+var generalComponents = "2D, Canvas, Controls, Collision, SpriteAnimation";
+
+var typeSprites = {
+  boob: "BoobSprite",
+  teeth: "TeethSprite",
+  eye: "EyeSprite"
+};
+
 function createPlayer(playerInfo) {
   var socket = window.ouro.socket;
+  playerInfo.type = "eye";
 
-  var player = Crafty.e("2D, Canvas, ship, Controls, Collision")
+  var sprite = typeSprites[playerInfo.type];
+
+  var player = Crafty.e("2D, Canvas, Controls, Collision, SpriteAnimation, " + sprite)
   .attr({
     id: playerInfo.id,
     name: playerInfo.name,
@@ -37,9 +48,11 @@ function createPlayer(playerInfo) {
 
     //if the move up is true, increment the y/xspeeds
     if(this.move.up) {
+      this.animate('active', 6, -1);
       this.yspeed -= vy;
       this.xspeed += vx;
     } else {
+      this.animate('passive', 6, -1);
       //if released, slow down the ship
       this.xspeed *= this.decay;
       this.yspeed *= this.decay;
@@ -105,6 +118,27 @@ function createPlayer(playerInfo) {
       score.text(newScore);
     }
   });
+
+  switch(playerInfo.type) {
+    case "teeth":
+      player.animate('active', 0, 0, 1)
+            .animate('passive', 0, 0, 1);
+
+      break;
+    case "boob":
+      player.animate('active', 0, 0, 3)
+            .animate('passive', 4, 0, 4);
+
+      break;
+    case "eye":
+      player.animate('active', 0, 0, 3)
+            .animate('passive', 0, 0, 1);
+
+      break;
+  }
+
+  player.animate('passive', 6, -1);
+
 
   if (playerInfo.id == window.ouro.myId) {
     player.bind("KeyDown", function(e) {
@@ -195,6 +229,7 @@ Crafty.scene("main", function() {
       player.move.up = false;
     }
   });
+
   Crafty.background("url('images/bg.png')");
 
   //score display
