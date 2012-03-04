@@ -4,9 +4,14 @@ window.ouro.myId = null;
 var Crafty = Crafty;
 var io = io;
 
-var socket = window.ouro.socket = io.connect('http://localhost/', {});
+var socket = window.ouro.socket = io.connect(document.location.href, {});
 socket.on('id', function(idToSet) {
   window.ouro.myId = idToSet;
+});
+
+window.ouro.playerList = [];
+socket.on('playerList', function(playerList) {
+  window.ouro.playerList = playerList;
 });
 
 Crafty.init();
@@ -41,11 +46,14 @@ Crafty.scene("start_menu", function () {
     .replace('<form><label>Name</label><input /></form>');
 
   $('form').submit(function(evt) {
-    var name = this.value;
-
+    var name = $(this).find('input').val();
     socket.emit('register', name);
 
     evt.preventDefault();
+  });
+
+  socket.on('moveToLobby', function() {
+    Crafty.scene('lobby');
   });
 
   Crafty.load(window.ouro.assets, function() {

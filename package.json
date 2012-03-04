@@ -13,7 +13,8 @@
   "dependencies": {
     "messenger":"",
     "express":"",
-    "socket.io":""
+    "socket.io":"",
+    "underscore":""
   },
   "devDependencies": {},
   "optionalDependencies": {}

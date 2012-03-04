@@ -1,20 +1,20 @@
 window.ouro = window.ouro || {};
 
 var players = [];
-var socket;
-var player;
 var firebullet;
-var myId;
 var score;
 
 var Crafty = Crafty;
 var _ = _;
 var io = io;
 
-function createPlayer(id, location) {
+function createPlayer(playerInfo) {
+  var socket = window.ouro.socket;
+
   var player = Crafty.e("2D, Canvas, ship, Controls, Collision")
   .attr({
-    id: id,
+    id: playerInfo.id,
+    name: playerInfo.name,
     move: {
       left: false, right: false,
       up: false, down: false
@@ -73,7 +73,6 @@ function createPlayer(id, location) {
     //player.score += 5;
     //score.text("Score: "+player.score);
     var bullet = e[0].obj;
-    console.log('bullet', bullet);
     if (this.id != bullet.player_id) {
       bullet.destroy(); //destroy the bullet
       this.attr({
@@ -94,13 +93,20 @@ function createPlayer(id, location) {
       opponent.score += 1;
       var newScore = '';
       for (var p in players) {
-        newScore += ' player ' + players[p].id + ': ' + players[p].score;
+        if (players[p].score >= 10) {
+          score.text('player ' + players[p].id + ' wins with ' + players[p].score + ' points!');
+          for (var i in players) {
+            players[i].destroy();
+          }
+          return;
+        }
+        newScore += 'player ' + players[p].id + ': ' + players[p].score + '<br/>';
       }
       score.text(newScore);
     }
   });
 
-  if (id == myId) {
+  if (playerInfo.id == window.ouro.myId) {
     player.bind("KeyDown", function(e) {
       var data = {};
       data.keyCode = e.keyCode;
@@ -109,7 +115,7 @@ function createPlayer(id, location) {
       data.y = player._y;
       data.rotation = player._rotation;
 
-      socket.emit('KeyDown', myId, data);
+      socket.emit('KeyDown', window.ouro.myId, data);
 
     }).bind("KeyUp", function(e) {
       var data = {};
@@ -119,7 +125,7 @@ function createPlayer(id, location) {
       data.y = player._y;
       data.rotation = player._rotation;
 
-      socket.emit('KeyUp', myId, data);
+      socket.emit('KeyUp', window.ouro.myId, data);
     });
   }
 
@@ -129,129 +135,9 @@ function createPlayer(id, location) {
 }
 
 Crafty.scene("main", function() {
-  Crafty.background("url('images/bg.png')");
-
-  //score display
-  score = Crafty.e("2D, DOM, Text")
-  .text("Score: 0")
-  .attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
-  .css({color: "#fff"});
-
-  //player entity
-
-  firebullet = function(player) {
-    var bullet = Crafty.e("2D, Canvas, Color, bullet")
-    .attr({
-      x: player._x - 4,
-      y: player._y - 7,
-      w: 2, 
-      h: 5, 
-      rotation: player._rotation, 
-      xspeed: 20 * Math.sin(player._rotation / 57.3), 
-      yspeed: 20 * Math.cos(player._rotation / 57.3)
-    })
-    .color("rgb(255, 0, 0)")
-    .bind("EnterFrame", function() { 
-      bullet.x += bullet.xspeed;
-      bullet.y -= bullet.yspeed;
-
-      //destroy if it goes out of bounds
-      if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
-        bullet.destroy();
-      }
-    });
-    bullet.player_id = player.id;
-  };
-
-  /*//keep a count of asteroids
-  var asteroidCount,
-  lastCount;
-
-  //Asteroid component
-  Crafty.c("asteroid", {
-  init: function() {
-  this.origin("center");
-  this.attr({
-  x: Crafty.math.randomInt(0, Crafty.viewport.width), //give it random positions, rotation and speed
-  y: Crafty.math.randomInt(0, Crafty.viewport.height),
-  xspeed: Crafty.math.randomInt(1, 5), 
-  yspeed: Crafty.math.randomInt(1, 5), 
-  rspeed: Crafty.math.randomInt(-5, 5)
-  }).bind("EnterFrame", function() {
-  this.x += this.xspeed;
-  this.y += this.yspeed;
-  this.rotation += this.rspeed;
-
-  if(this._x > Crafty.viewport.width) {
-  this.x = -64;
-  }
-  if(this._x < -64) {
-  this.x =  Crafty.viewport.width;
-  }
-  if(this._y > Crafty.viewport.height) {
-  this.y = -64;
-  }
-  if(this._y < -64) {
-  this.y = Crafty.viewport.height;
-  }
-  }).collision()
-  .onHit("bullet", function(e) {
-  //if hit by a bullet increment the score
-  player.score += 5;
-  score.text("Score: "+player.score);
-  e[0].obj.destroy(); //destroy the bullet
-
-  var size;
-  //decide what size to make the asteroid
-  if(this.has("big")) {
-  this.removeComponent("big").addComponent("medium");
-  size = "medium";
-  } else if(this.has("medium")) {
-  this.removeComponent("medium").addComponent("small");
-  size = "small";
-  } else if(this.has("small")) { //if the lowest size, delete self
-  asteroidCount--;
-  this.destroy();
-  return;
-  }
-
-  var oldxspeed = this.xspeed;
-  this.xspeed = -this.yspeed;
-  this.yspeed = oldxspeed;
-
-  asteroidCount++;
-  //split into two asteroids by creating another asteroid
-  Crafty.e("2D, Canvas, "+size+", Collision, asteroid").attr({x: this._x, y: this._y});
-  });
-
-  }
-  });
-
-  //function to fill the screen with asteroids by a random amount
-  function initRocks(lower, upper) {
-  var rocks = Crafty.math.randomInt(lower, upper);
-  asteroidCount = rocks;
-  lastCount = rocks;
-
-  for(var i = 0; i < rocks; i++) {
-  Crafty.e("2D, Canvas, big, Collision, asteroid");
-  }
-  }
-  //first level has between 1 and 10 asteroids
-  initRocks(1, 10);
-*/
-});
-
-$(document).ready(function() {
-  Crafty.scene('start_menu');
-  return;
-  Crafty.canvas.init();
-
-  Crafty.scene('main');
-
   var socket = window.ouro.socket;
 
-  socket.on('newPlayer', createPlayer);
+  _.each(window.ouro.playerList, createPlayer);
 
   socket.on('KeyDown', function(id, data) {
     var player = _.find(players, function(plr) {
@@ -309,5 +195,46 @@ $(document).ready(function() {
       player.move.up = false;
     }
   });
+  Crafty.background("url('images/bg.png')");
+
+  //score display
+  score = Crafty.e("2D, DOM, Text")
+  .text("Score: 0")
+  .attr({x: Crafty.viewport.width - 300, y: Crafty.viewport.height - 50, w: 200, h:50})
+  .css({color: "#fff"});
+
+  //player entity
+
+  firebullet = function(player) {
+    var bullet = Crafty.e("2D, Canvas, Color, bullet")
+    .attr({
+      x: player._x + 9,
+      y: player._y + 47,
+      w: 2, 
+      h: 5, 
+      rotation: player._rotation, 
+      xspeed: 20 * Math.sin(player._rotation / 57.3), 
+      yspeed: 20 * Math.cos(player._rotation / 57.3)
+    })
+    .color("rgb(255, 0, 0)")
+    .bind("EnterFrame", function() { 
+      bullet.x += bullet.xspeed;
+      bullet.y -= bullet.yspeed;
+
+      //destroy if it goes out of bounds
+      if(bullet._x > Crafty.viewport.width || bullet._x < 0 || bullet._y > Crafty.viewport.height || bullet._y < 0) {
+        bullet.destroy();
+      }
+    });
+    bullet.player_id = player.id;
+  };
+});
+
+
+
+$(document).ready(function() {
+  Crafty.canvas.init();
+
+  Crafty.scene('start_menu');
 });
 
